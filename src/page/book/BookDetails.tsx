@@ -3,9 +3,7 @@ import { useParams } from "react-router-dom";
 import useAxiosPublic from "../../axiosPublic/useAxiosPublic";
 import { jwtDecode } from "jwt-decode";
 import Swal from "sweetalert2";
-import "animate.css";
 import ReviewsRatings from "./BookRevew";
-// import RelizonBook from "../Home/RelizonBook";
 import InfoSection from "./InfoSection";
 
 interface Book {
@@ -27,19 +25,14 @@ interface DecodedToken {
 
 const BookDetails = () => {
   const { id } = useParams();
-  const [book, setBook] = useState<Book | null>(null);
   const axiosPublic = useAxiosPublic();
+  const [book, setBook] = useState<Book | null>(null);
 
   useEffect(() => {
     const fetchBookDetails = async () => {
-      try {
-        const response = await axiosPublic.get(`/products/${id}`);
-        setBook(response.data.data);
-      } catch (error) {
-        console.error("Error fetching book details:", error);
-      }
+      const res = await axiosPublic.get(`/products/${id}`);
+      setBook(res.data.data);
     };
-
     fetchBookDetails();
   }, [id, axiosPublic]);
 
@@ -50,112 +43,116 @@ const BookDetails = () => {
       Swal.fire({
         title: "Please Login",
         icon: "info",
-        showClass: {
-          popup: `animate__animated animate__fadeInUp animate__faster`,
-        },
-        hideClass: {
-          popup: `animate__animated animate__fadeOutDown animate__faster`,
-        },
       });
       return;
     }
 
-    const decodedToken: DecodedToken = jwtDecode(token);
-    const userEmail = decodedToken?.email;
+    const decoded: DecodedToken = jwtDecode(token);
 
     const cartData = {
       productId: book?._id,
       title: book?.title,
       price: book?.price,
       image: book?.image,
-      userEmail,
+      userEmail: decoded?.email,
     };
 
     try {
-      const response = await axiosPublic.post("/cart/create-cart", cartData);
-      if (response.data) {
-        Swal.fire({
-          position: "top-end",
-          icon: "success",
-          title: "Product added to cart successfully!",
-          showConfirmButton: false,
-          timer: 1500,
-        });
-      } else {
-        alert("Failed to add product to cart.");
-      }
-    } catch (error) {
-      console.error("Error adding product to cart:", error);
-      alert("Error adding product to cart.");
+      await axiosPublic.post("/cart/create-cart", cartData);
+
+      Swal.fire({
+        position: "top-end",
+        icon: "success",
+        title: "Added to cart",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } catch {
+      Swal.fire("Error", "Failed to add cart", "error");
     }
   };
 
-  if (!book) {
-    return <div className="text-center py-10">Loading...</div>;
-  }
+  if (!book) return <div className="text-center py-20">Loading...</div>;
 
   return (
-    <div className="w-full mt-10 px-5 md:px-10 lg:px-14">
-      <div className="bg-base-200  dark:bg-white dark:text-black shadow-lg p-5 md:p-8 rounded-lg">
-        <div className="flex flex-col lg:flex-row gap-10 items-center lg:items-start">
-          {/* Product Image */}
-          <div className="w-full lg:w-1/2 flex flex-col items-center">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-10">
+      {/* Main Section */}
+      <div className="grid lg:grid-cols-2 gap-10 bg-white dark:bg-gray-900 p-6 rounded-xl shadow">
+        {/* Book Image */}
+        <div className="flex flex-col items-center">
+          <div className="overflow-hidden rounded-xl border">
             <img
               src={book.image}
               alt={book.title}
-              className="w-full max-w-xs md:max-w-md  h-[500px] object-cover rounded-lg"
+              className="w-full max-h-[520px] object-cover hover:scale-105 transition duration-300"
             />
-            <div className="grid grid-cols-3 gap-3 mt-5 w-full max-w-[220px]">
-              {[1, 2, 3].map((_, index) => (
-                <img
-                  key={index}
-                  src="https://i.ibb.co.com/jHgvsvt/images-6.jpg"
-                  alt="thumbnail"
-                  className="h-[70px] object-cover rounded"
-                />
-              ))}
-            </div>
           </div>
 
-          {/* Product Details */}
-          <div className="w-full  lg:w-1/2 space-y-5 text-center lg:text-left">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-              {book.title}
-            </h1>
-            <p className="text-gray-600">{book.description}</p>
-            <p className="text-gray-500 font-medium">{book.author}</p>
-            <p className="text-2xl text-teal-600 font-semibold">
+          {/* thumbnails */}
+          <div className="flex gap-3 mt-5">
+            {[1, 2, 3].map((i) => (
+              <img
+                key={i}
+                src={book.image}
+                className="w-20 h-20 object-cover rounded border cursor-pointer hover:scale-105"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Details */}
+        <div className="space-y-5">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+            {book.title}
+          </h1>
+
+          <p className="text-gray-500 text-sm">
+            Author: <span className="font-medium">{book.author}</span>
+          </p>
+
+          {/* Price */}
+          <div className="flex items-center gap-4">
+            <span className="text-3xl font-bold text-teal-600">
               ${book.price}
-              <span className="text-red-500 ml-4 line-through text-lg">
-                ${book.discount}
-              </span>
-            </p>
+            </span>
 
-            {/* Quantity Section */}
-            <p className="text-lg font-medium text-gray-800">
-              Books available: {book.quantity} pcs
-            </p>
+            <span className="text-lg line-through text-red-400">
+              ${book.discount}
+            </span>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <button
-                onClick={addToCart}
-                className="bg-[#071214] text-white px-5 py-3 rounded-lg w-full sm:w-auto shadow-md hover:bg-[#19bcd1] transition"
-              >
-                Add to Cart
-              </button>
-              <button className="bg-teal-600 text-white px-5 py-3 rounded-lg w-full sm:w-auto shadow-md hover:bg-orange-600 transition">
-                Add to wishlist
-              </button>
-            </div>
+            <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded">
+              Sale
+            </span>
+          </div>
+
+          {/* Stock */}
+          <p className="text-sm text-gray-600">
+            Available: <span className="font-semibold">{book.quantity}</span>{" "}
+            pcs
+          </p>
+
+          {/* Description */}
+          <p className="text-gray-600 leading-relaxed">{book.description}</p>
+
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <button
+              onClick={addToCart}
+              className="bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700 transition"
+            >
+              Add To Cart
+            </button>
+
+            <button className="border border-gray-300 px-6 py-3 rounded-lg font-medium hover:bg-gray-100">
+              Wishlist
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Reviews, Related Books & Info Section */}
-      <div className="mt-10 space-y-10">
+      {/* Extra Sections */}
+      <div className="mt-16 space-y-16">
         <ReviewsRatings />
-        {/* <RelizonBook /> */}
         <InfoSection />
       </div>
     </div>
