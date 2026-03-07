@@ -1,6 +1,6 @@
 import { CiSearch } from "react-icons/ci";
 import { FaCartShopping } from "react-icons/fa6";
-import { IoMenuSharp } from "react-icons/io5";
+import { IoLogIn } from "react-icons/io5";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import SubNavbar from "./SubNavbar";
 import { jwtDecode } from "jwt-decode";
@@ -8,347 +8,173 @@ import { useEffect, useState } from "react";
 import useAxiosPublic from "../../../axiosPublic/useAxiosPublic";
 import Swal from "sweetalert2";
 import UseCart from "../../../hooks/UseCart";
+import MobileNavbar from "./MobileNavbar";
 
 interface DecodedToken {
   exp: number;
-  sub: string;
 }
+
+const navLinks = [
+  { name: "Home", path: "/" },
+  { name: "Books", path: "/books" },
+  { name: "Author", path: "/author" },
+  { name: "About", path: "/about" },
+  { name: "Blog", path: "/bloge" },
+  { name: "Contact", path: "/contact" },
+];
 
 const Navbar = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [scrollDirection, setScrollDirection] = useState<string>("down");
+  const [scrollDirection, setScrollDirection] = useState("up");
   const navigate = useNavigate();
   const axiosPublic = useAxiosPublic();
   const [cart] = UseCart();
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
-    if (token) {
-      try {
-        const decodedToken = jwtDecode<DecodedToken>(token);
-        const currentTime = Date.now() / 1000;
-        if (decodedToken.exp > currentTime) {
-          setIsAuthenticated(true);
-        } else {
-          localStorage.removeItem("jwtToken"); // Remove expired token
-          setIsAuthenticated(false);
-        }
-      } catch (error) {
-        console.error("Invalid token:", error);
+    if (!token) return;
+
+    try {
+      const decoded = jwtDecode<DecodedToken>(token);
+      const now = Date.now() / 1000;
+
+      if (decoded.exp > now) {
+        setIsAuthenticated(true);
+      } else {
         localStorage.removeItem("jwtToken");
       }
+    } catch {
+      localStorage.removeItem("jwtToken");
     }
   }, []);
 
   const logoutHandler = async () => {
-    try {
-      await axiosPublic.post("/auth/logout");
-      localStorage.removeItem("jwtToken");
-      setIsAuthenticated(false);
-      Swal.fire({
-        position: "top-end",
-        icon: "success",
-        title: "User Logout",
-        showConfirmButton: false,
-        timer: 1500,
-      });
-      navigate("/");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+    await axiosPublic.post("/auth/logout");
 
-  const handleScroll = () => {
-    const currentScrollY = window.scrollY;
-    if (currentScrollY > 100) {
-      setScrollDirection("down");
-    } else {
-      setScrollDirection("up");
-    }
+    localStorage.removeItem("jwtToken");
+    setIsAuthenticated(false);
+
+    Swal.fire({
+      position: "top-end",
+      icon: "success",
+      title: "User Logout",
+      showConfirmButton: false,
+      timer: 1500,
+    });
+
+    navigate("/");
   };
 
   useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
+    const handleScroll = () => {
+      setScrollDirection(window.scrollY > 80 ? "down" : "up");
     };
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <header className="bg-gray-200 shadow-lg fixed  top-0 z-50 w-full">
-      {/* SubNavbar with visibility based on scroll direction */}
-      <div
-        className={`${
-          scrollDirection === "down" ? "hidden" : "block"
-        } transition-all duration-500 `}
-      >
-        <SubNavbar />
-      </div>
-      {/* main nav */}
-      <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-14 items-center justify-between">
-          <div className="md:flex md:items-center md:gap-12">
-            <a className="block text-teal-600" href="/">
+    <>
+      <header className="fixed w-full top-0 z-50 bg-white shadow-sm">
+        {/* Top bar */}
+        <div
+          className={`transition-all duration-500 ${
+            scrollDirection === "down" ? "hidden" : "block"
+          }`}
+        >
+          <SubNavbar />
+        </div>
+
+        {/* Main Navbar */}
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to="/">
               <img
                 src="https://i.ibb.co.com/VmX711W/images-removebg-preview.png"
-                alt=""
-                className="h-[70px] w-36 object-cover"
+                className="lg:h-44 h-32 object-contain"
               />
-            </a>
-          </div>
-          <div className="hidden md:block">
-            <nav aria-label="Global">
-              <form>
-                <div className="flex items-center relative">
-                  <input
-                    type="text"
-                    placeholder="Search for books, authors, genres, etc."
-                    className="text-sm py-4 px-4 h-6 bg-slate-100 rounded-2xl w-96 relative"
-                  />
-                  <button className="text-black font-bold text-sm py-2 absolute right-4 top-1/2 transform -translate-y-1/2 hover:text-blue-500 hover:cursor-pointer">
-                    <CiSearch className="h-5 w-5 z-10" />
-                  </button>
-                </div>
-              </form>
-            </nav>
-          </div>
+            </Link>
 
-          <div className="flex items-center gap-4">
-            <div className="sm:flex sm:gap-4 text-center items-center justify-center">
+            {/* Search */}
+            <div className="hidden md:flex flex-1 max-w-md mx-6 relative">
+              <input
+                type="text"
+                placeholder="Search books, authors..."
+                className="w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+
+              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-teal-600">
+                <CiSearch size={20} />
+              </button>
+            </div>
+
+            {/* Right */}
+            <div className="flex items-center gap-4">
+              {/* Cart */}
+              <Link to="/cart" className="relative hidden md:block">
+                <FaCartShopping className="text-xl text-gray-700 hover:text-teal-600 transition" />
+                <span className="absolute -top-2 -right-2 text-xs bg-teal-600 text-white rounded-full px-1.5">
+                  {cart?.length || 0}
+                </span>
+              </Link>
+
+              {/* Auth */}
               {isAuthenticated ? (
-                <>
-                  <button className=" md:px-5 py-2 md:py-2.5 text-sm font-medium">
-                    <div className="dropdown dropdown-end">
-                      <div
-                        tabIndex={0}
-                        role="button"
-                        className="btn btn-ghost btn-circle avatar"
-                      >
-                        <div className="w-10 rounded-full">
-                          <img
-                            alt="User avatar"
-                            src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp"
-                          />
-                        </div>
-                      </div>
-                      <ul
-                        tabIndex={0}
-                        className="menu menu-sm dropdown-content dark:bg-white bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
-                      >
-                        <Link to="/deshboard">
-                          <li>
-                            <a className="justify-between">
-                              Dashboard
-                              <span className="badge">New</span>
-                            </a>
-                          </li>
-                        </Link>
-                        <li onClick={logoutHandler}>
-                          <a>Logout</a>
-                        </li>
-                      </ul>
-                    </div>
-                  </button>
-                </>
+                <button
+                  onClick={logoutHandler}
+                  className="hidden md:block text-sm font-medium hover:text-teal-600"
+                >
+                  Logout
+                </button>
               ) : (
                 <Link
                   to="/login"
-                  className="hidden lg:flex rounded-md bg-teal-600 px-2 md:px-5 py-2 md:py-2.5 text-sm font-medium text-white shadow"
+                  className="hidden md:block bg-teal-600 text-white px-4 py-2 rounded-md text-sm hover:bg-teal-700 transition"
                 >
                   Sign In
                 </Link>
               )}
-              <Link to="/cart" className="hidden lg:flex">
-                <FaCartShopping className="h-6 w-6 text-gray-500 hover:text-gray-700" />
-                <span className="badge badge-sm indicator-item">
-                  {cart?.length || 0}
-                </span>
-              </Link>
-            </div>
 
-            <div className="block md:hidden">
-              <button className="rounded bg-gray-100 p-2 text-gray-600 transition hover:text-gray-600/75">
-                <div className="dropdown">
-                  <div
-                    tabIndex={0}
-                    role="button"
-                    className="text-black cursor-pointer"
-                  >
-                    <IoMenuSharp />
-                  </div>
-                  <ul
-                    tabIndex={0}
-                    className="menu menu-sm dropdown-content bg-[#edf9ffe8] rounded-box z-1 mt-3 w-52 p-2 shadow right-0 text-sm font-semibold"
-                  >
-                    <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                      <NavLink
-                        to="/"
-                        className={({ isActive }) =>
-                          isActive
-                            ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                            : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        }
-                      >
-                        Home
-                      </NavLink>
-                    </li>
-                    <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                      <NavLink
-                        to="/login"
-                        className={({ isActive }) =>
-                          isActive
-                            ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                            : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        }
-                      >
-                        Products
-                      </NavLink>
-                    </li>
-                    <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                      <NavLink
-                        to="/author"
-                        className={({ isActive }) =>
-                          isActive
-                            ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                            : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        }
-                      >
-                        Author
-                      </NavLink>
-                    </li>
-                    <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                      <NavLink
-                        to="/about"
-                        className={({ isActive }) =>
-                          isActive
-                            ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                            : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        }
-                      >
-                        About
-                      </NavLink>
-                    </li>
-                    <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                      <NavLink
-                        to="/about"
-                        className={({ isActive }) =>
-                          isActive
-                            ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                            : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        }
-                      >
-                        Blog
-                      </NavLink>
-                    </li>
-                    <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                      <NavLink
-                        to="/about"
-                        className={({ isActive }) =>
-                          isActive
-                            ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                            : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        }
-                      >
-                        Contact
-                      </NavLink>
-                    </li>
-                    <li>
-                      <Link to="/cart">
-                        <FaCartShopping className="h-6 w-6 text-gray-500 hover:text-gray-700" />
-                        <span className="badge badge-sm indicator-item">
-                          {cart?.length || 0}
-                        </span>
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-              </button>
+              {/* Mobile menu */}
+
+              <div className="flex md:hidden">
+                <button className="flex items-center gap-2 px-2 py-1.5 bg-teal-600 text-white rounded-md shadow-md hover:bg-teal-500 transition-colors duration-300 font-medium text-base">
+                  <span>Login</span>
+                  <IoLogIn size={20} />
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Desktop Menu */}
+          <nav className="hidden md:flex justify-center border-t border-gray-300">
+            <ul className="flex gap-8 py-3 text-lg font-semibold">
+              {navLinks.map((link) => (
+                <li key={link.name}>
+                  <NavLink
+                    to={link.path}
+                    className={({ isActive }) =>
+                      `relative group ${
+                        isActive ? "text-teal-600" : "text-gray-700"
+                      }`
+                    }
+                  >
+                    {link.name}
+
+                    {/* hover underline animation */}
+                    <span className="absolute left-0 -bottom-1 w-0 h-[2px] bg-teal-600 transition-all group-hover:w-full"></span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
-        {/* bottom nav */}
-        <div>
-          <div className="hidden md:flex  justify-center py-4 md:items-center">
-            <nav aria-label="Global">
-              <ul className="flex items-center gap-6 text-sm shrink-0 font-semibold">
-                <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                  <NavLink
-                    to="/"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                    }
-                  >
-                    Home
-                  </NavLink>
-                </li>
-                <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                  <NavLink
-                    to="/books"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                    }
-                  >
-                    Books
-                  </NavLink>
-                </li>
-                <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                  <NavLink
-                    to="/author"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                    }
-                  >
-                    Author
-                  </NavLink>
-                </li>
-                <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                  <NavLink
-                    to="/about"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                    }
-                  >
-                    About
-                  </NavLink>
-                </li>
-                <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                  <NavLink
-                    to="/bloge"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                    }
-                  >
-                    Blog
-                  </NavLink>
-                </li>
-                <li className="max-lg:border-b max-lg:px-3 max-lg:py-3">
-                  <NavLink
-                    to="/contact"
-                    className={({ isActive }) =>
-                      isActive
-                        ? "text-teal-600 font-serif uppercase nav-link font-semibold block text-[15px]"
-                        : "hover:text-[#ac99f1e1] text-gray-700 font-serif uppercase nav-link font-semibold block text-[15px]"
-                    }
-                  >
-                    Contact
-                  </NavLink>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </div>
-      </div>
-    </header>
+      </header>
+      <MobileNavbar />
+    </>
   );
 };
 
