@@ -3,21 +3,45 @@ import { IoMenuSharp } from "react-icons/io5";
 import { Link, NavLink } from "react-router-dom";
 import UseCart from "../../../hooks/UseCart";
 import { FaCartShopping } from "react-icons/fa6";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MobileMenuDrawer from "./MobileMenuDrawer";
 
 const MobileNavbar = () => {
   const [cart] = UseCart();
   const [open, setOpen] = useState(false);
 
+  const [scrollDirection, setScrollDirection] = useState("up");
+  const [lastScrollY, setLastScrollY] = useState(0);
+
   const navItemClass = (isActive: boolean) =>
     `flex flex-col items-center justify-center text-xs transition-all duration-300 ease-in-out ${
       isActive ? "text-teal-600 scale-110" : "text-gray-500"
     }`;
 
+  // Detect scroll direction
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setScrollDirection("down");
+      } else {
+        setScrollDirection("up");
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
   return (
     <>
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-lg z-50 md:hidden">
+      <div
+        className={`fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-lg z-50 transition-transform duration-300 md:hidden ${
+          scrollDirection === "down" ? "translate-y-full" : "translate-y-4"
+        }`}
+      >
         <div className="flex justify-around items-center py-3">
           {/* Home */}
           <NavLink to="/" className={({ isActive }) => navItemClass(isActive)}>
@@ -26,7 +50,10 @@ const MobileNavbar = () => {
           </NavLink>
 
           {/* Books */}
-          <NavLink to="/books" className={({ isActive }) => navItemClass(isActive)}>
+          <NavLink
+            to="/books"
+            className={({ isActive }) => navItemClass(isActive)}
+          >
             <FaBook size={24} />
             <span className="mt-1 font-medium">Books</span>
           </NavLink>
@@ -46,7 +73,10 @@ const MobileNavbar = () => {
           </Link>
 
           {/* Blog */}
-          <NavLink to="/bloge" className={({ isActive }) => navItemClass(isActive)}>
+          <NavLink
+            to="/bloge"
+            className={({ isActive }) => navItemClass(isActive)}
+          >
             <span className="text-2xl">📝</span>
             <span className="mt-1 font-medium">Blog</span>
           </NavLink>

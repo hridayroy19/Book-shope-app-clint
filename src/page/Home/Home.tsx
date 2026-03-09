@@ -9,6 +9,7 @@ import RelizonBook from "./RelizonBook";
 import Feedback from "./Review";
 import useAxiosPublic from "../../axiosPublic/useAxiosPublic";
 import Loading from "../../components/sheard/Loading";
+import NewsletterSignup from "./NewsletterSignup";
 
 const Home = () => {
 
@@ -27,7 +28,6 @@ const Home = () => {
       try {
         const response = await axiosPublic.get(`/products/get-book`);
         const allBooks = response.data.data || [];
-  
         const populer = allBooks.filter((book: IBook) => book.category === 'Fiction');
         const religious = allBooks.filter((book: IBook) => book.category === 'Religious');
         const children = allBooks.filter((book: IBook) => book.category === 'Children');
@@ -51,14 +51,15 @@ const Home = () => {
   }
   return (
     <div className="bg-gray-100 w-full mx-auto">
-      <div className="px-4">
         <Banner />
+        <div className="px-4">
         <BookCatagory />
         <PopularBooks popularBooks={popularBooks} />
         <RelizonBook religiousBooks={religiousBooks} />
         <ChildBook  religiousBooks={childrenBooks} />
         <Discount />
         <Advertise />
+        <NewsletterSignup/>
         <Feedback />
       </div>
     </div>
