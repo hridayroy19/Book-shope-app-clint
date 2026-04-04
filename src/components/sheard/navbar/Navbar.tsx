@@ -1,7 +1,7 @@
 import { CiSearch } from "react-icons/ci";
 import { FaCartShopping } from "react-icons/fa6";
 import { IoLogIn } from "react-icons/io5";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import SubNavbar from "./SubNavbar";
 import { jwtDecode } from "jwt-decode";
 import { useEffect, useState } from "react";
@@ -29,6 +29,26 @@ const Navbar = () => {
   const navigate = useNavigate();
   const axiosPublic = useAxiosPublic();
   const [cart] = UseCart();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (location.pathname !== "/" && location.pathname !== "/books") {
+      navigate(`/?search=${value}`);
+    } else {
+      if (value) {
+        setSearchParams({ search: value });
+      } else {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("search");
+        setSearchParams(newParams);
+      }
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
@@ -102,6 +122,8 @@ const Navbar = () => {
             <div className="hidden md:flex flex-1 max-w-md mx-6 relative">
               <input
                 type="text"
+                value={searchTerm}
+                onChange={handleSearchChange}
                 placeholder="Search books, authors..."
                 className="w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />

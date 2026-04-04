@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Banner from "../../components/banner/Banner";
 import Advertise from "./Advertise";
 import BookCatagory from "./catagory/BookCatagory";
@@ -12,6 +13,8 @@ import Loading from "../../components/sheard/Loading";
 import NewsletterSignup from "./NewsletterSignup";
 
 const Home = () => {
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get("search")?.toLowerCase() || "";
 
   const [popularBooks, setPopularBooks] = useState<IBook[]>([]);
   // console.log(popularBooks,"data get popouer")
@@ -49,14 +52,29 @@ const Home = () => {
      <Loading/>
     );
   }
+  const filteredPopularBooks = popularBooks.filter(book => 
+    book.title.toLowerCase().includes(searchQuery) ||
+    book.author.toLowerCase().includes(searchQuery)
+  );
+
+  const filteredReligiousBooks = religiousBooks.filter(book => 
+    book.title.toLowerCase().includes(searchQuery) ||
+    book.author.toLowerCase().includes(searchQuery)
+  );
+
+  const filteredChildrenBooks = childrenBooks.filter(book => 
+    book.title.toLowerCase().includes(searchQuery) ||
+    book.author.toLowerCase().includes(searchQuery)
+  );
+
   return (
     <div className="bg-gray-100 w-full mx-auto">
         <Banner />
         <div className="px-4">
         <BookCatagory />
-        <PopularBooks popularBooks={popularBooks} />
-        <RelizonBook religiousBooks={religiousBooks} />
-        <ChildBook  religiousBooks={childrenBooks} />
+        <PopularBooks popularBooks={filteredPopularBooks} />
+        <RelizonBook religiousBooks={filteredReligiousBooks} />
+        <ChildBook  religiousBooks={filteredChildrenBooks} />
         <Discount />
         <Advertise />
         <NewsletterSignup/>

@@ -6,14 +6,20 @@ import Loading from "../../components/sheard/Loading";
 import BookCard from "./BookCard";
 import { IBook } from "../Home/PopularBooks";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
+
 const Book = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [popularBooks, setPopularBooks] = useState<IBook[]>([]);
+  const [totalBooks, setTotalBooks] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const axiosPublic = useAxiosPublic();
 
   // --- Filter States ---
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>(
+    searchParams.get("search") || "",
+  );
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [priceRange, setPriceRange] = useState<string>("");
   const [minRating, setMinRating] = useState<number>(0);
@@ -27,7 +33,6 @@ const Book = () => {
     try {
       const response = await axiosPublic.get("/products/get-book", {
         params: {
-          searchTerm: search, // This will match title or author in backend
           category: selectedCategory,
           priceRange,
           minRating,
@@ -36,7 +41,43 @@ const Book = () => {
           limit: itemsPerPage,
         },
       });
-      setPopularBooks(response.data.data || []);
+
+      let fetchedBooks = response.data.data || [];
+
+      // Frontend Filtering for Search
+      if (search) {
+        const lowerSearch = search.toLowerCase();
+        fetchedBooks = fetchedBooks.filter(
+          (book: IBook) =>
+            book.title?.toLowerCase().includes(lowerSearch) ||
+            book.author?.toLowerCase().includes(lowerSearch),
+        );
+      }
+
+      // Filter by category if backend doesn't support it
+      if (selectedCategory) {
+        fetchedBooks = fetchedBooks.filter(
+          (book: IBook) => book.category === selectedCategory,
+        );
+      }
+
+      // Filter by min rating
+      if (minRating > 0) {
+        fetchedBooks = fetchedBooks.filter(
+          (book: IBook) => book.rating >= minRating,
+        );
+      }
+
+      setTotalBooks(fetchedBooks.length);
+
+      // Frontend Pagination
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const paginatedBooks = fetchedBooks.slice(
+        startIndex,
+        startIndex + itemsPerPage,
+      );
+
+      setPopularBooks(paginatedBooks);
     } catch (error) {
       console.error("Fetch Error:", error);
     } finally {
@@ -48,6 +89,14 @@ const Book = () => {
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchBooks(searchTerm);
+
+      // Update URL to match search term so Navbar stays in sync
+      if (searchTerm) {
+        searchParams.set("search", searchTerm);
+      } else {
+        searchParams.delete("search");
+      }
+      setSearchParams(searchParams);
     }, 500); // Wait 500ms after user stops typing
 
     return () => clearTimeout(delayDebounceFn);
@@ -59,6 +108,14 @@ const Book = () => {
     sortBy,
     currentPage,
   ]);
+
+  // Sync if URL search params change externally (e.g. from Navbar)
+  useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    if (urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
+    }
+  }, [searchParams.get("search")]);
 
   const resetFilters = () => {
     setSearchTerm("");
@@ -300,6 +357,74 @@ const Book = () => {
                 className="text-teal-600 font-bold mt-2 hover:underline"
               >
                 Clear all filters
+              </button>
+            </div>
+          )}
+
+          {/* Dynamic Pagination UI */}
+          {!loading && totalBooks > 0 && (
+            <div className="flex justify-center items-center mt-10 gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-white border border-teal-200 text-teal-700 rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-teal-50 font-bold transition flex items-center"
+              >
+                Prev
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex gap-2">
+                {[...Array(Math.ceil(totalBooks / itemsPerPage))].map(
+                  (_, index) => {
+                    const pageNumber = index + 1;
+                    // Simple truncation logic for many pages
+                    if (
+                      pageNumber === 1 ||
+                      pageNumber === Math.ceil(totalBooks / itemsPerPage) ||
+                      (pageNumber >= currentPage - 1 &&
+                        pageNumber <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => setCurrentPage(pageNumber)}
+                          className={`w-10 h-10 rounded-lg font-bold shadow-sm transition-colors ${
+                            currentPage === pageNumber
+                              ? "bg-teal-600 text-white border-transparent"
+                              : "bg-white text-gray-700 border border-gray-200 hover:bg-teal-50 hover:text-teal-700"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    } else if (
+                      pageNumber === currentPage - 2 ||
+                      pageNumber === currentPage + 2
+                    ) {
+                      return (
+                        <span
+                          key={pageNumber}
+                          className="flex items-center text-gray-400 font-bold px-1"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  },
+                )}
+              </div>
+
+              <button
+                onClick={() =>
+                  setCurrentPage((p) =>
+                    Math.min(Math.ceil(totalBooks / itemsPerPage), p + 1),
+                  )
+                }
+                disabled={currentPage >= Math.ceil(totalBooks / itemsPerPage)}
+                className="px-4 py-2 bg-white border border-teal-200 text-teal-700 rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-teal-50 font-bold transition flex items-center"
+              >
+                Next
               </button>
             </div>
           )}
