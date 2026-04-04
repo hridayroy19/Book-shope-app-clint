@@ -1,10 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaBell, FaShop } from "react-icons/fa6";
 import AllUsers from "./AllUsers";
 import { Link } from "react-router-dom";
+import useAxiosPublic from "../../axiosPublic/useAxiosPublic";
 
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  const [stats, setStats] = useState({
+    totalBooks: 0,
+    totalUsers: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+  });
+  const axiosPublic = useAxiosPublic();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch from backend /api/admin/stats
+        const res = await axiosPublic.get('/admin/stats');
+        if (res.data?.success) {
+           setStats(res.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats", error);
+      }
+    };
+    
+    fetchStats();
+  }, [axiosPublic]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -53,10 +78,10 @@ const Dashboard = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 col-span-1 md:col-span-2">
             {[
-              { title: "Total Book", value: "35", change: "10.00%" },
-              { title: "Total User", value: "18", change: "22.00%" },
-              { title: "Number of Meetings", value: "34040", change: "2.00%" },
-              { title: "Number of Clients", value: "47033", change: "0.22%" },
+              { title: "Total Book", value: stats.totalBooks.toString() },
+              { title: "Total User", value: stats.totalUsers.toString() },
+              { title: "Total Orders", value: stats.totalOrders.toString() },
+              { title: "Total Revenue", value: `$${stats.totalRevenue.toFixed(2)}` },
             ].map((stat, i) => (
               <div
                 key={i}
@@ -72,7 +97,6 @@ const Dashboard = () => {
               >
                 <h3 className="text-sm mb-2">{stat.title}</h3>
                 <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="text-xs mt-1">{stat.change} (30 days)</div>
               </div>
             ))}
           </div>
