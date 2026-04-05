@@ -16,7 +16,6 @@ export interface IBook {
 }
 
 const PopularBooks = ({popularBooks}:{popularBooks:IBook[]}) => {
-  console.log(popularBooks,"popuser page")
   useEffect(() => {
     AOS.init();
   }, []);
